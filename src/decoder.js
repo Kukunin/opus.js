@@ -1,53 +1,53 @@
 var AV = require('av');
-var opus = require('../build/libopus');
 
-var OpusDecoder = AV.Decoder.extend(function() {
-  AV.Decoder.register('opus', this);
+module.exports = function(Opus) {
+  var OpusDecoder = AV.Decoder.extend(function() {
+    AV.Decoder.register('opus', this);
 
-  this.prototype.init = function() {
-    this.buflen = 4096;
-    this.buf = opus._malloc(this.buflen);
+    this.prototype.init = function() {
+      this.buflen = 4096;
+      this.buf = Opus._malloc(this.buflen);
 
-    this.outlen = 4096;
-    this.outbuf = opus._malloc(this.outlen * this.format.channelsPerFrame * 4);
-    this.f32 = this.outbuf >> 2;
+      this.outlen = 4096;
+      this.outbuf = Opus._malloc(this.outlen * this.format.channelsPerFrame * 4);
+      this.f32 = this.outbuf >> 2;
 
-    this.opus = opus._opus_decoder_create(this.format.sampleRate, this.format.channelsPerFrame, this.buf);
-  };
 
-  this.prototype.readChunk = function() {
-    if (!this.stream.available(1))
-      throw new AV.UnderflowError();
+      this.opus = Opus._opus_decoder_create(this.format.sampleRate, this.format.channelsPerFrame, this.buf);
+    };
 
-    var list = this.stream.list;
-    var packet = list.first;
-    list.advance();
+    this.prototype.readChunk = function() {
+      if (!this.stream.available(1))
+        throw new AV.UnderflowError();
 
-    if (this.buflen < packet.length) {
-      this.buf = opus._realloc(this.buf, packet.length);
-      this.buflen = packet.length;
-    }
+      var list = this.stream.list;
+      var packet = list.first;
+      list.advance();
 
-    opus.HEAPU8.set(packet.data, this.buf);
+      if (this.buflen < packet.length) {
+        this.buf = opus._realloc(this.buf, packet.length);
+        this.buflen = packet.length;
+      }
 
-    var len = opus._opus_decode_float(this.opus, this.buf, packet.length, this.outbuf, this.outlen, 0);
-    if (len < 0)
-      throw new Error("Opus decoding error: " + len);
+      Opus.HEAPU8.set(packet.data, this.buf);
 
-    var samples = opus.HEAPF32.subarray(this.f32, this.f32 + len * this.format.channelsPerFrame);
-    return new Float32Array(samples);
-  };
+      var len = Opus._opus_decode_float(this.opus, this.buf, packet.length, this.outbuf, this.outlen, 0);
+      if (len < 0)
+        throw new Error("Opus decoding error: " + len);
 
-  this.prototype.destroy = function() {
-    this._super();
-    opus._free(this.buf);
-    opus._free(this.outbuf);
-    opus._opus_decoder_destroy(this.opus);
+      var samples = Opus.HEAPF32.subarray(this.f32, this.f32 + len * this.format.channelsPerFrame);
+      return new Float32Array(samples);
+    };
 
-    this.buf = null;
-    this.outbuf = null;
-    this.opus = null;
-  };
-});
+    this.prototype.destroy = function() {
+      this._super();
+      Opus._free(this.buf);
+      Opus._free(this.outbuf);
+      Opus._opus_decoder_destroy(this.opus);
 
-module.exports = OpusDecoder;
+      this.buf = null;
+      this.outbuf = null;
+      this.opus = null;
+    };
+  });
+}

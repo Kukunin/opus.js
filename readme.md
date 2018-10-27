@@ -6,7 +6,7 @@ An Opus audio decoder for [aurora.js](https://github.com/audiocogs/aurora.js), p
 ## Browser usage
 
 You can either use [Browserify](http://browserify.org) to build your project using the Node module
-system, or download standalone versions of [aurora.js](https://github.com/audiocogs/aurora.js/releases), 
+system, or download standalone versions of [aurora.js](https://github.com/audiocogs/aurora.js/releases),
 [ogg.js](https://github.com/audiocogs/ogg.js/releases), and [opus.js](https://github.com/audiocogs/opus.js/releases)
 to include as `<script>` tags on your HTML page.
 
@@ -20,12 +20,20 @@ Install using `npm`:
 
 Register codecs and play a file:
 
-```javascript
-var AV = require('av');
-require('opus.js'); // and any other codecs you want...
+```js
+const AV = require('av');
+const Opus = require('opus.js'); // and any other codecs you want...
+const options = {};
 
-AV.Player.fromFile('filename.ogg').play();
+Opus(options).then(function() {
+  AV.Player.fromFile('filename.ogg').play();
+});
 ```
+
+Opus uses Emscripten which takes time to initialize. This why you'd want to use
+the `Opus(options).then(callback)` callback to ensure the codec is initialized.
+
+The `options` is passed directly to the [fast-sound](https://github.com/Kukunin/fast-sound) library.
 
 In node, requiring `opus.js` automatically loads the `ogg.js` demuxer.
 
@@ -33,9 +41,7 @@ See the [Aurora.js docs](http://github.com/audiocogs/aurora.js/wiki) for more de
 
 ## Building from source
 
-1. Install [Emscripten](https://github.com/kripken/emscripten/wiki/Emscripten-SDK).
-2. Run `make` to fetch and build the submodules, and to build the emscripten lib. Run this again whenever you make changes to the C wrapper or a new version of libogg is released.
-3. Run `make browser` to generate a browser version of opus.js, or use browserify to build your application.
+1. Run `make browser` to generate a browser version of opus.js, or use browserify to build your application.
 
 ## License
 

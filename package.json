@@ -7,7 +7,7 @@
     "ogg.js": "~0.1.0"
   },
   "devDependencies": {
-    "browserify": "^4.1.10",
+    "browserify": "^16.2.3",
     "browserify-shim": "^3.5.0"
   },
   "browserify-shim": {
@@ -32,5 +32,8 @@
   "bugs": {
     "url": "https://github.com/audiocogs/opus.js/issues"
   },
-  "homepage": "https://github.com/audiocogs/opus.js"
+  "homepage": "https://github.com/audiocogs/opus.js",
+  "dependencies": {
+    "fast-sound": "^1.0.1"
+  }
 }

@@ -34,6 +34,6 @@
   },
   "homepage": "https://github.com/audiocogs/opus.js",
   "dependencies": {
-    "fast-sound": "^1.0.1"
+    "fast-sound": "^1.0.2"
   }
 }

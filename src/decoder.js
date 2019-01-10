@@ -1,24 +1,38 @@
 var AV = require('av');
-const FastSound = require('fast-sound');
 
 module.exports = function(config) {
   var OpusDecoder = AV.Decoder.extend(function() {
     AV.Decoder.register('opus', this);
 
     this.prototype.init = function() {
-      this.buflen = 4096;
-      this.outlen = 4096;
+      this.queue = [];
+      this.buflen = config.bufferLength || 4096;
 
-      this.promise = new Promise((resolve) => {
-        FastSound(config).then((Opus) => {
+      this.promise = new Promise((resolve, reject) => {
+        const decoder = new Worker(config.decoderPath);
 
-          this.buf = Opus._malloc(this.buflen);
-          this.opus = Opus._opus_decoder_create(this.format.sampleRate, this.format.channelsPerFrame, this.buf);
-          this.outbuf = Opus._malloc(this.outlen * this.format.channelsPerFrame * 4);
-          this.f32 = this.outbuf >> 2;
-          Opus.then = undefined; // to avoid infinite resolving loop
-          resolve(Opus);
+        decoder.addEventListener( "message", (e) => {
+          switch( e['data']['message'] ){
+          case 'ready':
+            resolve(decoder);
+            break;
+          case 'error':
+            throw new Error("Opus decoding error: " + e['data']['error']);
+          case 'data':
+            this.queue.shift()(e['data']['data']);
+            break;
+          }
         });
+
+        decoder.postMessage( Object.assign({
+          command: 'init',
+          bufferLength: this.buflen,
+          decoderSampleRate: this.format.sampleRate,
+          outputBufferSampleRate: 48000,
+          resampleQuality: config.resampleQuality || 3,
+          numberOfChannels: this.format.channelsPerFrame,
+          fastSound: config.fastSound
+        }, this.config));
       });
     };
 
@@ -30,36 +44,21 @@ module.exports = function(config) {
       var packet = list.first;
       list.advance();
 
-      return this.promise.then((Opus) => {
-        if (this.buflen < packet.length) {
-            this.buf = Opus._realloc(this.buf, packet.length);
-            this.buflen = packet.length;
-        }
+      if (this.buflen < packet.length ) {
+        throw new Error("Packet size is bigger than the buffer size: " + this.buflen);
+      }
 
-        Opus.HEAPU8.set(packet.data, this.buf);
+      return this.promise.then((decoder) => {
+        decoder.postMessage({ command: "decode", data: packet.data });
 
-        var len = Opus._opus_decode_float(this.opus, this.buf, packet.length, this.outbuf, this.outlen, 0);
-        if (len < 0)
-            throw new Error("Opus decoding error: " + len);
-
-        var samples = Opus.HEAPF32.subarray(this.f32, this.f32 + len * this.format.channelsPerFrame);
-        return new Float32Array(samples);
+        return new Promise((resolve, reject) => this.queue.push(resolve));
       });
     };
 
     this.prototype.destroy = function() {
-      this._super();
-
-      this.promise.then((Opus) => {
-        Opus._free(this.buf);
-        Opus._free(this.outbuf);
-        Opus._opus_decoder_destroy(this.opus);
-        this.opus = null;
-      });
+      this.queue = [];
+      this.promise.then((decoder) => decoder.terminate());
       this.promise = null;
-
-      this.buf = null;
-      this.outbuf = null;
     };
   });
 }

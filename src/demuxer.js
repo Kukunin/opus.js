@@ -8,9 +8,13 @@ OggDemuxer.plugins.push({
     if (packet[8] !== 1)
       throw new Error("Unknown opus version");
 
+    const deviceSampleRate = AV.AudioDevice.deviceSampleRate
+                          && AV.AudioDevice.deviceSampleRate() || 48000;
+
     this.emit('format', {
       formatID: 'opus',
-      sampleRate: 48000,
+      sampleRate: deviceSampleRate,
+      originalSampleRate: 48000,
       channelsPerFrame: packet[9],
       floatingPoint: true
     });

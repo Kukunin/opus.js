@@ -27,8 +27,8 @@ module.exports = function(config) {
         decoder.postMessage( Object.assign({
           command: 'init',
           bufferLength: this.buflen,
-          decoderSampleRate: this.format.sampleRate,
-          outputBufferSampleRate: 48000,
+          decoderSampleRate: this.format.originalSampleRate,
+          outputBufferSampleRate: this.format.sampleRate,
           resampleQuality: config.resampleQuality || 3,
           numberOfChannels: this.format.channelsPerFrame,
           fastSound: config.fastSound
